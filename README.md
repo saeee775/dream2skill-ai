@@ -2,7 +2,6 @@
 **Reinventing Skill Development for Rural India Using AI + MicroLearning + Web3**
 
 📍 *Submitted to:* **IIT – Techfest / Aarohan Innovation Challenge**  
-👩‍💻 *Team:* Dream2Skill AI  
 🏫 *Domain:* EdTech, Social Innovation  
 🌏 *Focus:* Rural Skill Enablement & Employment Acceleration  
 
@@ -97,20 +96,6 @@ Landing Page → Register/Login → DNA Onboarding → Personalized Dashboard & 
 
 ➡ Empower 10M+ rural learners in 5 years
 
----
-
-## 🚀 Development Roadmap
-
-| Phase | Goal | Status |
-|------|------|--------|
-| Phase 1 | Adaptive UI + Auth + AI DNA Onboarding | ✔ Done |
-| Phase 2 | MicroLessons + Skill Progress Tracking | 🔄 In Progress |
-| Phase 3 | Backend + Real Cred Verification | ⏳ Planned |
-| Phase 4 | Mobile App + Offline mode | ⏳ Planned |
-| Phase 5 | Blockchain Skill Credentials | ⏳ Planned |
-
----
-
 ## 🔍 Tech Highlights for Judges
 
 - Cognitive profiling + Matching with Skill pathways  
@@ -132,8 +117,3 @@ Landing Page → Register/Login → DNA Onboarding → Personalized Dashboard & 
 
 > To ensure **every rural youth** has equal access to future-ready skills  
 > regardless of language, location, or finances.
-
----
-
-### ⭐ Support our mission — transforming Bharat’s youth into a future-ready workforce.
-```
