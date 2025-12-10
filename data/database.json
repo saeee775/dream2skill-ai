@@ -1,0 +1,14 @@
+{
+  "users": [],
+  "courses": [],
+  "enrollments": [],
+  "progress": [],
+  "certificates": [],
+  "dnaProfiles": [],
+  "stats": {
+    "totalUsers": 0,
+    "totalCourses": 0,
+    "totalEnrollments": 0,
+    "totalCertificates": 0
+  }
+}

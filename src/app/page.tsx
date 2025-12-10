@@ -44,8 +44,8 @@ export default function Home() {
   ]
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white overflow-hidden">
-      <Header />
+    <main className="min-h-screen bg-gray-900 text-white overflow-hidden pt-20">
+      
       
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">

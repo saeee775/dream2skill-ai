@@ -1,77 +1,192 @@
-// apps/web/src/components/layout/Header.tsx - UPDATE EXISTING FILE
-'use client'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { useAuth } from '@/contexts/AuthContext'
+// apps/web/src/components/layout/Header.tsx
+'use client';
+
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/ui/LanguageSelector';
+import { Menu, X, User, Home, BookOpen, PlayCircle, LogOut } from 'lucide-react';
+import { useState } from 'react';
 
 export function Header() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { user, logout } = useAuth();
+  const { t } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logout()
-  }
+    logout();
+    setIsMenuOpen(false);
+  };
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-gray-900/80 backdrop-blur-xl border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
+    <header className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-xl border-b border-cyan-500/20 supports-[backdrop-filter]:bg-black/60">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg" />
-            <span className="text-xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              DREAM2SKILL
-            </span>
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
+              <span className="text-white font-bold text-lg">D2S</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent leading-tight">
+                Dream2Skill AI
+              </span>
+              <span className="text-xs text-gray-400">For Rural India</span>
+            </div>
           </Link>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/learning" className="text-gray-300 hover:text-white font-medium transition-colors">
-              Learning
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link 
+              href="/" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cyan-500/10"
+            >
+              <Home className="w-4 h-4" />
+              {t('nav.home')}
             </Link>
-            <Link href="/skills" className="text-gray-300 hover:text-white font-medium transition-colors">
-              Skills
+            <Link 
+              href="/learning" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cyan-500/10"
+            >
+              <BookOpen className="w-4 h-4" />
+              {t('nav.courses')}
             </Link>
-            <Link href="/career" className="text-gray-300 hover:text-white font-medium transition-colors">
-              Career
+            <Link 
+              href="/demo" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cyan-500/10"
+            >
+              <PlayCircle className="w-4 h-4" />
+              {t('nav.demo')}
             </Link>
-            <Link href="/profile" className="text-gray-300 hover:text-white font-medium transition-colors">
-              Profile
-            </Link>
-          </nav>
-
-          {/* Auth Buttons - Now shows user info when logged in */}
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <>
-                <span className="text-gray-300 text-sm">
-                  Welcome, {user?.village || 'User'}
-                </span>
+            
+            {/* Language Selector */}
+            <div className="ml-2">
+              <LanguageSelector />
+            </div>
+            
+            {/* Auth Buttons */}
+            {user ? (
+              <div className="flex items-center gap-3">
+                <Link 
+                  href="/dashboard" 
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
+                >
+                  <User className="w-4 h-4" />
+                  {t('nav.dashboard')}
+                </Link>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-all"
+                  className="px-4 py-2 rounded-lg border border-red-500/20 text-red-400 hover:border-red-500/40 hover:bg-red-500/10 transition-all"
                 >
-                  Logout
+                  {t('nav.logout')}
                 </button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-3">
                 <Link 
                   href="/auth/login" 
-                  className="text-gray-300 hover:text-white font-medium transition-colors"
+                  className="px-4 py-2 rounded-lg border border-cyan-500/20 text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all"
                 >
-                  Login
+                  {t('nav.login')}
                 </Link>
                 <Link 
-                  href="/auth/register"
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                  href="/auth/register" 
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
                 >
-                  Get Started
+                  {t('nav.register')}
                 </Link>
-              </>
+              </div>
             )}
-          </div>
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 rounded-lg border border-cyan-500/20 hover:border-cyan-500/40 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? (
+              <X className="w-6 h-6 text-cyan-400" />
+            ) : (
+              <Menu className="w-6 h-6 text-cyan-400" />
+            )}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-4 pb-4 border-t border-cyan-500/20 pt-4 animate-slideDown">
+            <div className="flex flex-col gap-2">
+              <Link 
+                href="/" 
+                className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Home className="w-5 h-5" />
+                {t('nav.home')}
+              </Link>
+              <Link 
+                href="/learning" 
+                className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <BookOpen className="w-5 h-5" />
+                {t('nav.courses')}
+              </Link>
+              <Link 
+                href="/demo" 
+                className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <PlayCircle className="w-5 h-5" />
+                {t('nav.demo')}
+              </Link>
+              
+              <div className="px-4 py-3">
+                <div className="mb-2 text-sm text-cyan-400 font-medium">Language</div>
+                <LanguageSelector />
+              </div>
+              
+              {user ? (
+                <>
+                  <Link 
+                    href="/dashboard" 
+                    className="flex items-center gap-3 px-4 py-3 text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    {t('nav.dashboard')}
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    {t('nav.logout')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    href="/auth/login" 
+                    className="px-4 py-3 text-center border border-cyan-500/20 text-cyan-400 hover:border-cyan-500/40 rounded-lg transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('nav.login')}
+                  </Link>
+                  <Link 
+                    href="/auth/register" 
+                    className="px-4 py-3 text-center bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('nav.register')}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
-  )
+  );
 }
