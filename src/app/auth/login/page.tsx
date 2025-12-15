@@ -4,14 +4,17 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, Smartphone, Globe } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
+  const { login, isLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     language: 'hindi'
   })
+  const [error, setError] = useState('')
 
   const languages = [
     { code: 'hindi', name: 'हिन्दी', native: 'हिन्दी' },
@@ -21,6 +24,21 @@ export default function LoginPage() {
     { code: 'bengali', name: 'Bengali', native: 'বাংলা' },
     { code: 'english', name: 'English', native: 'English' }
   ]
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields')
+      return
+    }
+
+    const success = await login(formData.email, formData.password)
+    if (!success) {
+      setError('Invalid credentials')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4">
@@ -50,7 +68,13 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form */}
-        <form className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
+              {error}
+            </div>
+          )}
           {/* Language Selector */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
@@ -122,12 +146,20 @@ export default function LoginPage() {
 
           {/* Login Button */}
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-4 rounded-xl hover:shadow-lg transition-all duration-300"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-4 rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
-            Sign In
+            {isLoading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
           </motion.button>
         </form>
 

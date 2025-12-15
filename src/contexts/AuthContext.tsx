@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLanguage(mockUser.language);
       }
       
-      router.push('/dashboard/learning');
+      router.push('/dashboard');
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLanguage(userData.language);
       }
       
-      router.push('/dashboard/learning');
+      router.push('/dashboard');
       return true;
     } catch (error) {
       console.error('Registration failed:', error);

@@ -1,74 +1,55 @@
 // apps/web/app/api/progress/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import JSONDatabase from '@/lib/db/json-db'
 import { authMiddleware } from '@/lib/auth'
-
-const prisma = new PrismaClient()
 
 // Get user's learning progress
 async function handler(req: NextRequest & { user: any }) {
   try {
     const userId = req.user.id
-    
-    const [enrollments, completedLessons, certificates] = await Promise.all([
+
+    const [enrollments, progressRecords, certificates] = await Promise.all([
       // Active enrollments
-      prisma.enrollment.findMany({
-        where: { userId, isCompleted: false },
-        include: {
-          course: {
-            select: {
-              id: true,
-              title: true,
-              category: true,
-              thumbnailUrl: true
-            }
-          }
-        },
-        orderBy: { lastAccessed: 'desc' }
-      }),
-      
-      // Completed lessons count
-      prisma.progress.count({
-        where: { userId, isCompleted: true }
-      }),
-      
+      JSONDatabase.getEnrollments(userId, false),
+      // Progress records
+      JSONDatabase.getProgress(userId),
       // Certificates earned
-      prisma.certificate.findMany({
-        where: { userId },
-        include: {
-          course: {
-            select: {
-              title: true,
-              category: true
-            }
-          }
-        }
-      })
+      JSONDatabase.getCertificates(userId)
     ])
-    
+
+    // Get courses data for enrollments
+    const courses = await JSONDatabase.getCourses()
+    const enrollmentsWithCourses = enrollments.map((enrollment: any) => ({
+      ...enrollment,
+      course: courses.find((course: any) => course.id === enrollment.courseId)
+    }))
+
+    const certificatesWithCourses = certificates.map((cert: any) => ({
+      ...cert,
+      course: courses.find((course: any) => course.id === cert.courseId)
+    }))
+
     // Calculate overall progress
-    const totalTimeSpent = await prisma.progress.aggregate({
-      where: { userId },
-      _sum: { timeSpent: true }
-    })
-    
+    const totalTimeSpent = progressRecords.reduce((sum, progress) => sum + (progress.timeSpent || 0), 0)
+    const completedLessons = progressRecords.filter(p => p.isCompleted).length
+
     const stats = {
       activeCourses: enrollments.length,
       completedLessons,
       certificatesEarned: certificates.length,
-      totalLearningTime: Math.floor((totalTimeSpent._sum.timeSpent || 0) / 3600), // in hours
+      totalLearningTime: Math.floor(totalTimeSpent / 3600), // in hours
       streak: calculateLearningStreak(userId) // Would implement streak calculation
     }
-    
+
     return NextResponse.json({
       success: true,
       data: {
         stats,
-        enrollments,
-        certificates
+        enrollments: enrollmentsWithCourses,
+        certificates: certificatesWithCourses
       }
     })
-    
+
   } catch (error: any) {
     return NextResponse.json({
       success: false,
@@ -83,81 +64,3 @@ async function calculateLearningStreak(userId: string): Promise<number> {
 }
 
 export const GET = authMiddleware(handler)
-
-// apps/web/app/api/enroll/[courseId]/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { authMiddleware } from '@/lib/auth'
-
-const prisma = new PrismaClient()
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { courseId: string } }
-) {
-  try {
-    const handler = authMiddleware(async (req: NextRequest & { user: any }) => {
-      const userId = req.user.id
-      const courseId = params.courseId
-      
-      // Check if already enrolled
-      const existingEnrollment = await prisma.enrollment.findUnique({
-        where: {
-          userId_courseId: {
-            userId,
-            courseId
-          }
-        }
-      })
-      
-      if (existingEnrollment) {
-        return NextResponse.json({
-          success: true,
-          data: existingEnrollment,
-          message: 'Already enrolled'
-        })
-      }
-      
-      // Create enrollment
-      const enrollment = await prisma.enrollment.create({
-        data: {
-          userId,
-          courseId,
-          progressPercentage: 0
-        },
-        include: {
-          course: {
-            include: {
-              modules: {
-                include: {
-                  lessons: true
-                }
-              }
-            }
-          }
-        }
-      })
-      
-      // Update course enrollment count
-      await prisma.course.update({
-        where: { id: courseId },
-        data: {
-          totalEnrollments: { increment: 1 }
-        }
-      })
-      
-      return NextResponse.json({
-        success: true,
-        data: enrollment
-      }, { status: 201 })
-    })
-    
-    return handler(request, {} as any)
-    
-  } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      error: error.message
-    }, { status: 500 })
-  }
-}

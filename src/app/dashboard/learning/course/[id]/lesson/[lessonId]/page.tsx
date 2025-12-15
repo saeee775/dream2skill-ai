@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import AITutorModal from '@/components/AITutorModal'
 
 export default function LessonPage() {
   const params = useParams()
@@ -17,6 +18,7 @@ export default function LessonPage() {
   const [progress, setProgress] = useState(0)
   const [completed, setCompleted] = useState(false)
   const [notes, setNotes] = useState('')
+  const [showAITutor, setShowAITutor] = useState(false)
 
   const courseId = params.id as string
   const lessonId = params.lessonId as string
@@ -28,7 +30,7 @@ export default function LessonPage() {
     duration: '15:00',
     type: 'video',
     content: 'This lesson covers the fundamental components of a smartphone, including the touchscreen, buttons, ports, and basic navigation gestures.',
-    transcript: 'Welcome to your first lesson on smartphone basics. In this lesson, we will explore the different parts of a smartphone and learn how to navigate the interface...',
+    transcript: 'Welcome to your first lesson on smartphone basics. In this lesson, we will explore the different parts of a smartphone and learn how to navigate the interface. We will cover:\n\n1. The touchscreen and how it works\n2. Physical buttons (power, volume, home)\n3. Charging ports and connections\n4. Basic gestures like tap, swipe, and pinch\n5. Accessing apps and settings\n\nTake your time to practice each concept as we go along.',
     nextLesson: '2',
     prevLesson: null
   }
@@ -243,7 +245,7 @@ export default function LessonPage() {
             <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
               <h3 className="text-xl font-bold mb-4 text-green-400">Transcript</h3>
               <div className="bg-gray-900/30 rounded-xl p-4 max-h-64 overflow-y-auto">
-                <p className="text-gray-300 text-sm leading-relaxed">{lesson.transcript}</p>
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{lesson.transcript}</p>
               </div>
             </div>
 
@@ -256,7 +258,10 @@ export default function LessonPage() {
               <p className="text-gray-400 text-sm mb-4">
                 Have questions about this lesson? Ask your AI tutor!
               </p>
-              <button className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-medium hover:shadow-lg transition-all">
+              <button 
+                onClick={() => setShowAITutor(true)}
+                className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-medium hover:shadow-lg transition-all"
+              >
                 Ask a Question
               </button>
             </div>
@@ -289,6 +294,14 @@ export default function LessonPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Tutor Modal */}
+      <AITutorModal
+        isOpen={showAITutor}
+        onClose={() => setShowAITutor(false)}
+        lessonTitle={lesson.title}
+        lessonContent={lesson.content}
+      />
     </div>
   )
 }

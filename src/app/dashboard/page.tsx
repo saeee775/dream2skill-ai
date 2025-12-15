@@ -1,3 +1,4 @@
+// apps/web/src/app/dashboard/learning/page.tsx - FIXED VERSION
 'use client'
 import { motion } from 'framer-motion'
 import { 
@@ -5,7 +6,7 @@ import {
   Sparkles, Rocket, ArrowLeft, Star, Target, Clock,
   BookOpen, Users, TrendingUp, Award
 } from 'lucide-react'
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -16,18 +17,8 @@ interface DNAAnswer {
 }
 
 export default function LearningDashboard() {
-  // Use useContext instead of useAuth if AuthContext is exported
-  const { user, login } = useContext(AuthContext)
+  const { user, login } = useAuth()
   const router = useRouter()
-  
-  // Debug state
-  const [debugInfo, setDebugInfo] = useState({
-    dnaRaw: '',
-    userRaw: '',
-    timestamp: new Date().toLocaleString(),
-  });
-
-  // Rest of the states
   const [onboardingStep, setOnboardingStep] = useState(1)
   const [learnerDNA, setLearnerDNA] = useState<Record<string, string>>({})
   const [dnaAnswers, setDnaAnswers] = useState<DNAAnswer[]>([])
@@ -35,6 +26,7 @@ export default function LearningDashboard() {
   const [analysisTime, setAnalysisTime] = useState(0)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showSkipOption, setShowSkipOption] = useState(false)
+  const [isLoading, setIsLoading] = useState(true) // Add loading state
 
   // Voice analysis states
   const [voiceAnalysis, setVoiceAnalysis] = useState({
@@ -46,61 +38,29 @@ export default function LearningDashboard() {
     sentiment: ''
   })
 
-  // Check if user exists - EARLY RETURN
-  useEffect(() => {
-    const savedUser = localStorage.getItem('dream2skill-user');
-    if (!savedUser) {
-      console.log('No user found, redirecting to login');
-      router.push('/auth/login');
-      return;
-    }
-    
-    try {
-      const userData = JSON.parse(savedUser);
-      if (!userData || !userData.id) {
-        console.log('Invalid user data, redirecting to login');
-        router.push('/auth/login');
-      }
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      router.push('/auth/login');
-    }
-  }, [router]);
-
-  // Debug effect
-  useEffect(() => {
-    const savedDNA = localStorage.getItem('user_dna_answers');
-    const savedUser = localStorage.getItem('dream2skill-user');
-    setDebugInfo({
-      dnaRaw: savedDNA || 'null',
-      userRaw: savedUser || 'null',
-      timestamp: new Date().toLocaleString(),
-    });
-  }, []);
-
   // Check if user already has DNA data
   useEffect(() => {
     const savedDNA = localStorage.getItem('user_dna_answers');
-    const savedUser = localStorage.getItem('dream2skill-user');
+    const savedUser = localStorage.getItem('dream2skill_user');
     
-    if (savedDNA && savedUser) {
+    if (savedDNA) {
       try {
         const dnaData = JSON.parse(savedDNA);
-        const userData = JSON.parse(savedUser);
         
-        if (userData.completed_dna) {
-          // Redirect to recommendations if DNA is already completed
-          console.log('User already completed DNA, redirecting to recommendations');
-          router.push('/dashboard/learning/recommendations');
-        } else if (Object.keys(dnaData).length > 0) {
+        if (Object.keys(dnaData).length > 0) {
           // Restore DNA progress
           setLearnerDNA(dnaData);
           const answeredQuestions = Object.keys(dnaData).length;
           setCurrentQuestion(answeredQuestions);
           
           // Calculate which step to show
-          if (answeredQuestions >= 15) {
-            setOnboardingStep(3); // Go to voice analysis
+          if (answeredQuestions >= 20) { // Updated to 20 questions
+            // Check if user has completed DNA
+            if (user?.completed_dna) {
+              router.push('/dashboard/learning/recommendations');
+            } else {
+              setOnboardingStep(3); // Go to voice analysis if all questions answered
+            }
           } else {
             setOnboardingStep(2); // Continue with questions
           }
@@ -108,11 +68,18 @@ export default function LearningDashboard() {
       } catch (error) {
         console.error('Error parsing saved DNA data:', error);
       }
-    } else if (savedUser && !savedDNA) {
-      // New user - skip introduction and go directly to questionnaire
-      setOnboardingStep(2);
     }
-  }, [router]);
+    
+    // If no saved DNA, check if user has completed DNA
+    if (user?.completed_dna) {
+      router.push('/dashboard/learning/recommendations');
+    } else if (savedUser && !savedDNA) {
+      // New user - start fresh
+      setOnboardingStep(1);
+    }
+    
+    setIsLoading(false); // Done loading
+  }, [router, user]);
 
   // Timer effect for analysis
   useEffect(() => {
@@ -137,7 +104,37 @@ export default function LearningDashboard() {
     return () => clearTimeout(timer);
   }, [onboardingStep, currentQuestion]);
 
-  // Comprehensive Question Bank with enhanced options
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+          <p className="text-gray-300">Loading your learning profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl mb-4 text-yellow-400">Authentication Required</h2>
+          <p className="text-gray-400 mb-6">You need to be logged in to access the learning dashboard.</p>
+          <button
+            onClick={() => router.push('/auth/login')}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-bold hover:shadow-xl transition-all mb-3"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Comprehensive Question Bank with ALL 20 QUESTIONS
   const dnaQuestions = [
     {
       id: 'learningStyle',
@@ -304,8 +301,6 @@ export default function LearningDashboard() {
         { id: 'rarely', text: 'Rarely need offline', icon: '🌐', description: 'Almost always online' }
       ]
     },
-    // Add these 5 new questions after the existing 15 questions in your dnaQuestions array:
-
     // NEW QUESTION 16: Learning Speed
     {
       id: 'learningSpeed',
@@ -344,7 +339,6 @@ export default function LearningDashboard() {
         }
       ]
     },
-
     // NEW QUESTION 17: Daily Learning Time
     {
       id: 'dailyTime',
@@ -383,7 +377,6 @@ export default function LearningDashboard() {
         }
       ]
     },
-
     // NEW QUESTION 18: Difficulty Handling
     {
       id: 'difficultyHandling',
@@ -422,7 +415,6 @@ export default function LearningDashboard() {
         }
       ]
     },
-
     // NEW QUESTION 19: Revision Needs
     {
       id: 'revisionNeeds',
@@ -461,7 +453,6 @@ export default function LearningDashboard() {
         }
       ]
     },
-
     // NEW QUESTION 20: Application Speed
     {
       id: 'applicationSpeed',
@@ -553,6 +544,7 @@ export default function LearningDashboard() {
     const challenges = []
     const recommendations = []
 
+    // Existing analysis...
     if (learnerDNA.learningStyle === 'visual') {
       strengths.push('Strong visual processing')
       recommendations.push('Content will include more diagrams, charts, and visual demonstrations')
@@ -570,6 +562,37 @@ export default function LearningDashboard() {
       recommendations.push('Content will connect new information to what you already know')
     }
 
+    // New questions analysis:
+    if (learnerDNA.learningSpeed === 'very_fast') {
+      strengths.push('Rapid concept grasp')
+      recommendations.push('Content will move at a faster pace with less repetition')
+    } else if (learnerDNA.learningSpeed === 'slow' || learnerDNA.learningSpeed === 'very_slow') {
+      challenges.push('Needs more time to understand concepts')
+      recommendations.push('Lessons will include more examples and slower pacing')
+    }
+    
+    if (learnerDNA.dailyTime === '30_min') {
+      recommendations.push('Daily lessons will be broken into 30-minute chunks')
+    } else if (learnerDNA.dailyTime === 'more_3_hours') {
+      strengths.push('High learning capacity')
+      recommendations.push('Extended learning sessions will be available')
+    }
+    
+    if (learnerDNA.difficultyHandling === 'persist_until_master') {
+      strengths.push('High persistence')
+      recommendations.push('Challenging content will be provided to match your persistence')
+    }
+    
+    if (learnerDNA.revisionNeeds === 'always' || learnerDNA.revisionNeeds === 'frequently') {
+      recommendations.push('Spaced repetition system will be activated for optimal memory retention')
+    }
+    
+    if (learnerDNA.applicationSpeed === 'immediately' || learnerDNA.applicationSpeed === 'quickly') {
+      strengths.push('Quick knowledge application')
+      recommendations.push('Practical exercises will be provided immediately after concepts')
+    }
+
+    // Existing analysis...
     if (learnerDNA.techComfort === 'learning') {
       challenges.push('May need tech support initially')
       recommendations.push('Extra guidance will be provided for technical aspects')
@@ -640,69 +663,27 @@ export default function LearningDashboard() {
     }, 4000)
   }
 
-  // FIXED: CORRECT handleCompleteDNA FUNCTION
   const handleCompleteDNA = () => {
-    console.log('=== STARTING DNA COMPLETION ===');
-    
     // Save final DNA analysis
-    const finalData = {
+    localStorage.setItem('user_dna_answers', JSON.stringify({
       ...learnerDNA,
       voiceAnalysis: voiceAnalysis,
-      completedAt: new Date().toISOString(),
-      dnaCompleted: true,
-      totalQuestionsAnswered: Object.keys(learnerDNA).length
-    };
-    
-    console.log('Final DNA Data to save:', finalData);
-    
-    // Save to localStorage with multiple keys to ensure it's found
-    localStorage.setItem('user_dna_answers', JSON.stringify(finalData));
-    localStorage.setItem('learnerDNA', JSON.stringify(finalData));
-    localStorage.setItem('dream2skill_dna_data', JSON.stringify(finalData));
-    
-    console.log('DNA data saved to localStorage with keys: user_dna_answers, learnerDNA, dream2skill_dna_data');
+      completedAt: new Date().toISOString()
+    }))
     
     // Update user to mark DNA as completed
-    try {
-      const savedUser = localStorage.getItem('dream2skill-user');
-      if (savedUser) {
-        const userData = JSON.parse(savedUser);
-        const updatedUser = {
-          ...userData,
-          completed_dna: true,
-          dna_completed_at: new Date().toISOString(),
-          dna_data: finalData,
-          last_updated: new Date().toISOString()
-        };
-        
-        // Update localStorage with user data
-        localStorage.setItem('dream2skill-user', JSON.stringify(updatedUser));
-        
-        console.log('Updated user data in localStorage:', updatedUser);
-        
-        // Update context if login function exists
-        if (login) {
-          login(updatedUser);
-        }
-      } else {
-        console.warn('No user data found in localStorage');
-      }
-    } catch (error) {
-      console.error('Error updating user data:', error);
+    const updatedUser = {
+      ...user!,
+      completed_dna: true,
+      dna_completed_at: new Date().toISOString()
     }
     
-    // Debug: Show what's in localStorage before redirect
-    console.log('DEBUG localStorage contents:');
-    console.log('user_dna_answers:', localStorage.getItem('user_dna_answers'));
-    console.log('dream2skill-user:', localStorage.getItem('dream2skill-user'));
-    console.log('learnerDNA:', localStorage.getItem('learnerDNA'));
+    login(updatedUser)
+    localStorage.setItem('dream2skill_user', JSON.stringify(updatedUser))
     
-    // Add a small delay to ensure localStorage is written, then redirect
-    setTimeout(() => {
-      console.log('=== REDIRECTING TO RECOMMENDATIONS PAGE ===');
-      router.push('/dashboard/learning/recommendations');
-    }, 1000);
-  };
+    // Redirect to personalized course recommendations
+    router.push('/dashboard/learning/recommendations')
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -805,7 +786,7 @@ export default function LearningDashboard() {
   }
 
   // Onboarding Step 2: Interactive DNA Questions
-  if (onboardingStep === 2 && currentQuestion < dnaQuestions.length) {
+  if (onboardingStep === 2) {
     const question = dnaQuestions[currentQuestion]
     const progress = ((currentQuestion + 1) / dnaQuestions.length) * 100
     
@@ -1388,24 +1369,6 @@ export default function LearningDashboard() {
                 See Your Personalized Course Recommendations
               </motion.button>
               
-              {/* Debug button */}
-              <div className="mt-4">
-                <button
-                  onClick={() => {
-                    console.log('=== DEBUG DNA DATA ===');
-                    console.log('Current learnerDNA:', learnerDNA);
-                    console.log('localStorage user_dna_answers:', localStorage.getItem('user_dna_answers'));
-                    console.log('localStorage dream2skill-user:', localStorage.getItem('dream2skill-user'));
-                    console.log('localStorage learnerDNA:', localStorage.getItem('learnerDNA'));
-                    console.log('localStorage dream2skill_dna_data:', localStorage.getItem('dream2skill_dna_data'));
-                    alert('Check browser console for debug info!');
-                  }}
-                  className="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Debug DNA Data
-                </button>
-              </div>
-              
               <p className="text-gray-500 text-sm">
                 🎯 Based on {dnaAnswers.length} data points • ⚡ Real-time adaptation • 🔄 Continuous improvement
               </p>
@@ -1441,7 +1404,7 @@ export default function LearningDashboard() {
     )
   }
 
-  // Loading state
+  // Default loading state (should not reach here)
   return (
     <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
       <div className="text-center">

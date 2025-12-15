@@ -1,9 +1,8 @@
 // apps/web/lib/auth.ts
-import { PrismaClient } from '@prisma/client'
+import JSONDatabase from './db/json-db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-const prisma = new PrismaClient()
 const JWT_SECRET = process.env.JWT_SECRET || 'dream2skill-secret-key-change-in-prod'
 
 export interface RegisterInput {
@@ -33,16 +32,12 @@ export class AuthService {
 
     // Check if user already exists
     if (data.email) {
-      const existingEmail = await prisma.user.findUnique({
-        where: { email: data.email }
-      })
+      const existingEmail = await JSONDatabase.findUser(data.email)
       if (existingEmail) throw new Error('Email already registered')
     }
 
     if (data.phone) {
-      const existingPhone = await prisma.user.findUnique({
-        where: { phone: data.phone }
-      })
+      const existingPhone = await JSONDatabase.findUser(data.phone)
       if (existingPhone) throw new Error('Phone number already registered')
     }
 
@@ -50,26 +45,24 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, 12)
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        phone: data.phone,
-        passwordHash,
-        fullName: data.fullName,
-        village: data.village,
-        district: data.district,
-        state: data.state,
-        educationLevel: data.educationLevel as any,
-        preferredLanguage: data.preferredLanguage as any
-      }
+    const user = await JSONDatabase.createUser({
+      email: data.email,
+      phone: data.phone,
+      passwordHash,
+      fullName: data.fullName,
+      village: data.village,
+      district: data.district,
+      state: data.state,
+      educationLevel: data.educationLevel,
+      preferredLanguage: data.preferredLanguage
     })
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
+      {
         userId: user.id,
         email: user.email,
-        phone: user.phone 
+        phone: user.phone
       },
       JWT_SECRET,
       { expiresIn: '30d' }
@@ -87,14 +80,7 @@ export class AuthService {
   // Login with email or phone
   static async login(data: LoginInput) {
     // Find user by email or phone
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: data.emailOrPhone },
-          { phone: data.emailOrPhone }
-        ]
-      }
-    })
+    const user = await JSONDatabase.findUser(data.emailOrPhone)
 
     if (!user) {
       throw new Error('User not found')
@@ -136,28 +122,16 @@ export class AuthService {
       const decoded = jwt.verify(token, JWT_SECRET) as any
       
       // Fetch fresh user data
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        select: {
-          id: true,
-          email: true,
-          phone: true,
-          fullName: true,
-          village: true,
-          district: true,
-          state: true,
-          educationLevel: true,
-          preferredLanguage: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      })
+      const user = await JSONDatabase.findUser(decoded.userId)
 
       if (!user) {
         throw new Error('User not found')
       }
 
-      return user
+      // Remove password hash from response
+      const { passwordHash, ...userWithoutPassword } = user
+
+      return userWithoutPassword
     } catch (error) {
       throw new Error('Invalid token')
     }

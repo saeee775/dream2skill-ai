@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
-import { Menu, X, User, Home, BookOpen, PlayCircle, LogOut } from 'lucide-react';
+import { Menu, X, User, Home, BookOpen, PlayCircle, LogOut, Shield, Users, Target } from 'lucide-react';
 import { useState } from 'react';
 
 export function Header() {
@@ -58,6 +58,43 @@ export function Header() {
               <PlayCircle className="w-4 h-4" />
               {t('nav.demo')}
             </Link>
+            
+            {/* SkillChain Link - Only show if user is logged in */}
+            {user && (
+              <>
+                <Link 
+                  href="/dashboard/skillchain" 
+                  className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-green-500/10 hover:to-emerald-500/10 hover:border hover:border-green-500/30 group"
+                >
+                  <Shield className="w-4 h-4 text-green-400 group-hover:animate-pulse" />
+                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent font-medium">
+                    SkillChain
+                  </span>
+                </Link>
+
+                {/* Career Oracle Link */}
+                <Link 
+                  href="/dashboard/career-oracle"
+                  className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-orange-500/10 hover:to-yellow-500/10 hover:border hover:border-orange-500/30 group"
+                >
+                  <Target className="w-4 h-4 text-orange-400 group-hover:animate-pulse" />
+                  <span className="bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent font-medium">
+                    Career Oracle
+                  </span>
+                </Link>
+
+                {/* Parent Voice Link - Only show if user is logged in */}
+                <Link 
+                  href="/dashboard/parent-voice"
+                  className="text-gray-300 hover:text-white transition-colors flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-orange-500/10 hover:border hover:border-amber-500/30 group"
+                >
+                  <Users className="w-4 h-4 text-amber-400 group-hover:animate-pulse" />
+                  <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent font-medium">
+                    Parent View
+                  </span>
+                </Link>
+              </>
+            )}
             
             {/* Language Selector */}
             <div className="ml-2">
@@ -141,6 +178,40 @@ export function Header() {
                 <PlayCircle className="w-5 h-5" />
                 {t('nav.demo')}
               </Link>
+              
+              {/* SkillChain Link in Mobile - Only show if user is logged in */}
+              {user && (
+                <>
+                  <Link 
+                    href="/dashboard/skillchain" 
+                    className="flex items-center gap-3 px-4 py-3 text-green-400 hover:text-white hover:bg-gradient-to-r hover:from-green-500/10 hover:to-emerald-500/10 rounded-lg transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span className="font-medium">SkillChain</span>
+                  </Link>
+
+                  {/* Career Oracle Link in Mobile */}
+                  <Link 
+                    href="/dashboard/career-oracle"
+                    className="flex items-center gap-3 px-4 py-3 text-orange-400 hover:text-white hover:bg-gradient-to-r hover:from-orange-500/10 hover:to-yellow-500/10 rounded-lg transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Target className="w-5 h-5" />
+                    <span className="font-medium">Career Oracle</span>
+                  </Link>
+
+                  {/* Parent Voice Link in Mobile */}
+                  <Link 
+                    href="/dashboard/parent-voice"
+                    className="flex items-center gap-3 px-4 py-3 text-amber-400 hover:text-white hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-orange-500/10 rounded-lg transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Users className="w-5 h-5" />
+                    <span className="font-medium">Parent View</span>
+                  </Link>
+                </>
+              )}
               
               <div className="px-4 py-3">
                 <div className="mb-2 text-sm text-cyan-400 font-medium">Language</div>

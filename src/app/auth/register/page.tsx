@@ -49,15 +49,13 @@ export default function RegisterPage() {
       newErrors.fullName = 'Full name is required'
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    if (!formData.email.trim() && !formData.phone.trim()) {
+      newErrors.email = 'Email or phone number is required'
+    } else if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid'
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required'
-    } else if (!/^\d{10}$/.test(formData.phone)) {
+    if (formData.phone.trim() && !/^\d{10}$/.test(formData.phone)) {
       newErrors.phone = 'Phone number must be 10 digits'
     }
 
@@ -69,6 +67,14 @@ export default function RegisterPage() {
 
     if (!formData.village.trim()) {
       newErrors.village = 'Village/Town is required'
+    }
+
+    if (!formData.district.trim()) {
+      newErrors.district = 'District is required'
+    }
+
+    if (!formData.state.trim()) {
+      newErrors.state = 'State is required'
     }
 
     if (!formData.education) {
@@ -89,15 +95,26 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call - replace with actual backend integration
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // For now, we'll simulate successful registration
-      console.log('Registration data:', formData)
-      
-      // Redirect to learning dashboard
-      router.push('/dashboard/learning')
-      
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Save user data and token
+        localStorage.setItem('dream2skill-user', JSON.stringify(result.data.user))
+        localStorage.setItem('dream2skill-token', result.data.token)
+        
+        // Redirect to dashboard
+        router.push('/dashboard')
+      } else {
+        setErrors({ submit: result.error })
+      }
     } catch (error) {
       console.error('Registration failed:', error)
       setErrors({ submit: 'Registration failed. Please try again.' })
@@ -170,7 +187,7 @@ export default function RegisterPage() {
           <div>
             <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
               <Mail className="w-4 h-4 mr-2" />
-              Email Address *
+              Email Address
             </label>
             <div className="relative">
               <input
@@ -187,13 +204,14 @@ export default function RegisterPage() {
               <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             </div>
             {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+            {!formData.email && !formData.phone && <p className="text-gray-400 text-xs mt-1">Email or phone required</p>}
           </div>
 
           {/* Phone Number */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
               <Smartphone className="w-4 h-4 mr-2" />
-              Phone Number *
+              Phone Number
             </label>
             <div className="relative">
               <input
@@ -233,6 +251,52 @@ export default function RegisterPage() {
               <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             </div>
             {errors.village && <p className="text-red-400 text-xs mt-1">{errors.village}</p>}
+          </div>
+
+          {/* District */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
+              <MapPin className="w-4 h-4 mr-2" />
+              District *
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.district}
+                onChange={(e) => handleInputChange('district', e.target.value)}
+                placeholder="Enter your district"
+                className={`w-full bg-gray-700/50 border rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-400 focus:ring-2 transition-all ${
+                  errors.district 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
+                    : 'border-white/10 focus:border-green-500 focus:ring-green-500/20'
+                }`}
+              />
+              <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+            {errors.district && <p className="text-red-400 text-xs mt-1">{errors.district}</p>}
+          </div>
+
+          {/* State */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
+              <MapPin className="w-4 h-4 mr-2" />
+              State *
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.state}
+                onChange={(e) => handleInputChange('state', e.target.value)}
+                placeholder="Enter your state"
+                className={`w-full bg-gray-700/50 border rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-400 focus:ring-2 transition-all ${
+                  errors.state 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
+                    : 'border-white/10 focus:border-green-500 focus:ring-green-500/20'
+                }`}
+              />
+              <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+            {errors.state && <p className="text-red-400 text-xs mt-1">{errors.state}</p>}
           </div>
 
           {/* Education Level */}

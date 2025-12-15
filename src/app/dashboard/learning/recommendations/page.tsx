@@ -1,4 +1,3 @@
-// apps/web/src/app/dashboard/learning/recommendations/page.tsx - UPDATED
 'use client'
 
 import { motion } from 'framer-motion'
@@ -12,32 +11,42 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
 import { coursesDatabase, Course } from '@/lib/courses'
 
 interface DNAAnswers {
-  learningStyle: string
-  informationProcessing: string
-  memoryRetention: string
-  problemSolving: string
-  motivationType: string
-  stressResponse: string
-  confidenceLevel: string
-  socialLearning: string
-  studyEnvironment: string
-  energyPatterns: string
-  focusDuration: string
-  techComfort: string
-  deviceUsage: string
-  internetStability: string
-  offlineNeeds: string
+  learningStyle?: string
+  informationProcessing?: string
+  memoryRetention?: string
+  problemSolving?: string
+  motivationType?: string
+  stressResponse?: string
+  confidenceLevel?: string
+  socialLearning?: string
+  studyEnvironment?: string
+  energyPatterns?: string
+  focusDuration?: string
+  techComfort?: string
+  deviceUsage?: string
+  internetStability?: string
+  offlineNeeds?: string
+  [key: string]: any // Allow additional properties
 }
 
 export default function RecommendationsPage() {
-  const { user } = useAuth()
   const router = useRouter()
+  
+  // Debug info state
+  const [debugInfo, setDebugInfo] = useState({
+    dnaRaw: '',
+    userRaw: '',
+    timestamp: new Date().toLocaleString(),
+    dnaFound: false,
+    dnaKeys: [] as string[]
+  });
+  
   const [dnaAnswers, setDnaAnswers] = useState<DNAAnswers | null>(null)
   const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([])
+  const [forceShowAll, setForceShowAll] = useState(false)
   const [allCourses, setAllCourses] = useState<Course[]>([])
   const [topMatch, setTopMatch] = useState<Course | null>(null)
   const [learningProfile, setLearningProfile] = useState({
@@ -56,30 +65,99 @@ export default function RecommendationsPage() {
   const categories = ['all', ...new Set(coursesDatabase.flatMap(course => course.category))]
 
   useEffect(() => {
-    // Load DNA answers from localStorage
-    const savedDNA = localStorage.getItem('user_dna_answers')
-    if (!savedDNA) {
-      router.push('/dashboard/learning')
-      return
-    }
-
-    const dnaData = JSON.parse(savedDNA)
-    setDnaAnswers(dnaData)
+    const loadDNAData = () => {
+      try {
+        console.log('=== LOADING DNA DATA FOR RECOMMENDATIONS ===');
+        
+        // Try multiple localStorage keys to find DNA data
+        const dnaKeys = [
+          'user_dna_answers', 
+          'learnerDNA', 
+          'dream2skill_dna_data'
+        ];
+        
+        let dnaData = null;
+        let foundKey = '';
+        const availableKeys = [];
+        
+        for (const key of dnaKeys) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            availableKeys.push(key);
+            try {
+              const parsedData = JSON.parse(data);
+              // Check if this is valid DNA data
+              if (parsedData && typeof parsedData === 'object' && Object.keys(parsedData).length > 0) {
+                dnaData = parsedData;
+                foundKey = key;
+                console.log(`✅ Found valid DNA data in ${key}:`, dnaData);
+                break;
+              }
+            } catch (e) {
+              console.warn(`Invalid JSON in ${key}:`, e);
+            }
+          }
+        }
+        
+        console.log('Available DNA keys:', availableKeys);
+        console.log('Found key:', foundKey);
+        console.log('DNA data loaded:', dnaData);
+        
+        // Update debug info
+        setDebugInfo({
+          dnaRaw: dnaData ? JSON.stringify(dnaData).substring(0, 200) + '...' : 'null',
+          userRaw: localStorage.getItem('dream2skill-user')?.substring(0, 200) + '...' || 'null',
+          timestamp: new Date().toLocaleString(),
+          dnaFound: !!dnaData,
+          dnaKeys: availableKeys
+        });
+        
+        if (dnaData && dnaData.dnaCompleted !== false) {
+          console.log('✅ Valid DNA data found, processing recommendations...');
+          setDnaAnswers(dnaData);
+          setAllCourses(coursesDatabase);
+          
+          // Analyze DNA profile
+          const profile = analyzeDNAProfile(dnaData);
+          setLearningProfile(profile);
+          console.log('Learning profile:', profile);
+          
+          // Get recommendations
+          const recommendations = getRecommendations(dnaData);
+          console.log('Recommended courses:', recommendations.length);
+          setRecommendedCourses(recommendations);
+          setTopMatch(recommendations[0] || null);
+          setLoading(false);
+        } else {
+          console.log('⚠️ No valid DNA data found or DNA not completed');
+          console.log('DNA data:', dnaData);
+          console.log('dnaCompleted flag:', dnaData?.dnaCompleted);
+          setForceShowAll(true);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('❌ Error loading DNA data:', error);
+        setForceShowAll(true);
+        setLoading(false);
+      }
+    };
     
-    // Set all courses
-    setAllCourses(coursesDatabase)
+    // Set loading timeout
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Loading timeout reached');
+      if (loading) {
+        console.log('Still loading, forcing show all');
+        setForceShowAll(true);
+        setLoading(false);
+      }
+    }, 5000);
     
-    // Analyze DNA and create learning profile
-    const profile = analyzeDNAProfile(dnaData)
-    setLearningProfile(profile)
+    loadDNAData();
     
-    // Get course recommendations
-    const recommendations = getRecommendations(dnaData)
-    setRecommendedCourses(recommendations)
-    setTopMatch(recommendations[0] || null)
-    
-    setLoading(false)
-  }, [router])
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [router]);
 
   const analyzeDNAProfile = (dna: DNAAnswers) => {
     const profile = {
@@ -101,7 +179,7 @@ export default function RecommendationsPage() {
     } else if (dna.learningStyle === 'kinesthetic') {
       profile.style = 'Hands-on Learner'
       profile.recommendations.push('Practical exercises and projects will be prioritized')
-    } else {
+    } else if (dna.learningStyle === 'reading') {
       profile.style = 'Reading/Writing Learner'
       profile.recommendations.push('Detailed notes and reading materials will be provided')
     }
@@ -116,7 +194,7 @@ export default function RecommendationsPage() {
     } else if (dna.focusDuration === 'long') {
       profile.pace = 'Deep Focus (1-2 hour sessions)'
       profile.recommendations.push('Longer, immersive learning sessions')
-    } else {
+    } else if (dna.focusDuration === 'extended') {
       profile.pace = 'Extended Focus (2+ hour sessions)'
       profile.recommendations.push('Extended learning periods for complex topics')
     }
@@ -131,7 +209,7 @@ export default function RecommendationsPage() {
     } else if (dna.studyEnvironment === 'active') {
       profile.environment = 'Active Social Environment'
       profile.recommendations.push('Group activities and discussions included')
-    } else {
+    } else if (dna.studyEnvironment === 'outdoor') {
       profile.environment = 'Outdoor/Natural Setting'
       profile.recommendations.push('Mobile-friendly content for outdoor learning')
     }
@@ -176,78 +254,118 @@ export default function RecommendationsPage() {
   }
 
   const getRecommendations = (dna: DNAAnswers): Course[] => {
-    const scoredCourses = coursesDatabase.map(course => {
-      let score = 0
-      let reasons = []
+    console.log('Getting recommendations for DNA:', dna);
+    
+    // First, ensure we have the courses database with matchScore property
+    const coursesWithScores = coursesDatabase.map(course => ({
+      ...course,
+      matchScore: 0,
+      reason: ''
+    }));
+    
+    // Strictly prioritize courses that match user's pace (focusDuration)
+    const scoredCourses = coursesWithScores.map(course => {
+      let score = 0;
+      let reasons = [];
 
-      // Learning style match (25% weight)
-      if (course.dnaMatch.learningStyle.includes(dna.learningStyle)) {
-        score += 25
-        reasons.push(`Matches your ${dna.learningStyle} learning style`)
-      }
+      try {
+        // Focus duration match (highest priority, 40% weight)
+        if (dna.focusDuration && course.dnaMatch?.focusDuration?.includes(dna.focusDuration)) {
+          score += 40;
+          reasons.push(`Perfectly matches your preferred learning pace (${dna.focusDuration})`);
+        }
 
-      // Motivation match (20% weight)
-      if (course.dnaMatch.motivationType.includes(dna.motivationType)) {
-        score += 20
-        reasons.push(`Aligns with your ${dna.motivationType} motivation`)
-      }
+        // Learning style match (20% weight)
+        if (dna.learningStyle && course.dnaMatch?.learningStyle?.includes(dna.learningStyle)) {
+          score += 20;
+          reasons.push(`Matches your ${dna.learningStyle} learning style`);
+        }
 
-      // Environment match (15% weight)
-      if (course.dnaMatch.environment.includes(dna.studyEnvironment)) {
-        score += 15
-        reasons.push(`Suits your preferred ${dna.studyEnvironment} environment`)
-      }
+        // Motivation match (10% weight)
+        if (dna.motivationType && course.dnaMatch?.motivationType?.includes(dna.motivationType)) {
+          score += 10;
+          reasons.push(`Aligns with your ${dna.motivationType} motivation`);
+        }
 
-      // Technical level match (15% weight)
-      const techLevels = ['learning', 'basic', 'comfortable', 'expert']
-      const userTechIndex = techLevels.indexOf(dna.techComfort)
-      const courseTechIndex = course.dnaMatch.technical[0] ? 
-        Math.max(...course.dnaMatch.technical.map(t => techLevels.indexOf(t))) : 0
-        
-      if (userTechIndex >= courseTechIndex - 1) {
-        score += 15
-        reasons.push(`Appropriate for your technical level`)
-      }
+        // Environment match (10% weight)
+        if (dna.studyEnvironment && course.dnaMatch?.environment?.includes(dna.studyEnvironment)) {
+          score += 10;
+          reasons.push(`Suits your preferred ${dna.studyEnvironment} environment`);
+        }
 
-      // Focus duration match (10% weight)
-      if (course.dnaMatch.focusDuration.includes(dna.focusDuration)) {
-        score += 10
-        reasons.push(`Matches your ${dna.focusDuration} focus pattern`)
-      }
+        // Technical level match (10% weight)
+        const techLevels = ['learning', 'basic', 'comfortable', 'expert'];
+        const userTechIndex = dna.techComfort ? techLevels.indexOf(dna.techComfort) : -1;
+        const courseTechIndex = course.dnaMatch?.technical?.[0] ? 
+          Math.max(...course.dnaMatch.technical.map(t => techLevels.indexOf(t))) : 0;
+        if (userTechIndex >= 0 && userTechIndex >= courseTechIndex - 1) {
+          score += 10;
+          reasons.push(`Appropriate for your technical level`);
+        }
 
-      // Confidence level match (10% weight)
-      if (course.dnaMatch.confidenceLevel.includes(dna.confidenceLevel)) {
-        score += 10
-        reasons.push(`Builds on your confidence level`)
-      }
+        // Confidence level match (5% weight)
+        if (dna.confidenceLevel && course.dnaMatch?.confidenceLevel?.includes(dna.confidenceLevel)) {
+          score += 5;
+          reasons.push(`Builds on your confidence level`);
+        }
 
-      // Bonus for offline availability
-      if ((dna.internetStability === 'unstable' || dna.offlineNeeds === 'critical') && course.offlineAvailable) {
-        score += 15
-        reasons.push(`Available offline for your connectivity needs`)
-      }
+        // Bonus for offline availability
+        if ((dna.internetStability === 'unstable' || dna.offlineNeeds === 'critical') && course.offlineAvailable) {
+          score += 5;
+          reasons.push(`Available offline for your connectivity needs`);
+        }
 
-      // Adjust for device usage
-      if (dna.deviceUsage === 'smartphone' && course.format.includes('mobile-friendly')) {
-        score += 5
-      }
+        // Adjust for device usage
+        if (dna.deviceUsage === 'smartphone' && course.format.includes('mobile-friendly')) {
+          score += 2;
+        }
 
-      // Language bonus (if user prefers local language)
-      if (course.language.includes('Hindi') || course.language.includes('Marathi') || course.language.includes('Tamil')) {
-        score += 5
+        // Language bonus (if user prefers local language)
+        if (course.language.includes('Hindi') || course.language.includes('Marathi') || course.language.includes('Tamil')) {
+          score += 2;
+        }
+
+        // Fallback scoring - give base points for beginner courses if user is beginner
+        if (course.difficulty === 'beginner' && dna.techComfort === 'learning') {
+          score += 2;
+          reasons.push(`Beginner-friendly course for your skill level`);
+        }
+
+        // Give some points for popular courses
+        if (course.popularity > 80) {
+          score += 1;
+        }
+
+        // Ensure at least some courses get recommended
+        if (score === 0) {
+          score = Math.max(5, course.rating * 5); // At least 5 points based on rating
+          reasons.push(`Popular course with high ratings`);
+        }
+
+        // Ensure score doesn't exceed 100
+        score = Math.min(score, 100);
+
+      } catch (error) {
+        console.error('Error scoring course:', course.id, error);
+        // Give minimum score on error
+        score = 5;
+        reasons.push(`General recommendation`);
       }
 
       return {
         ...course,
-        matchScore: Math.min(score, 100),
+        matchScore: score,
         reason: reasons.join('. ')
-      }
-    })
+      };
+    });
 
     // Sort by match score (descending) and return top 8
-    return scoredCourses
+    const sorted = scoredCourses
       .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 8)
+      .slice(0, 8);
+
+    console.log('Top recommendations:', sorted.map(c => ({ id: c.id, title: c.title, score: c.matchScore })));
+    return sorted;
   }
 
   const getDifficultyColor = (difficulty: string) => {
@@ -256,24 +374,6 @@ export default function RecommendationsPage() {
       case 'intermediate': return 'bg-yellow-500/20 text-yellow-400'
       case 'advanced': return 'bg-red-500/20 text-red-400'
       default: return 'bg-gray-500/20 text-gray-400'
-    }
-  }
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'agriculture': return <Leaf className="w-4 h-4" />
-      case 'technology': return <Smartphone className="w-4 h-4" />
-      case 'health': return <Activity className="w-4 h-4" />
-      case 'business': return <DollarSign className="w-4 h-4" />
-      case 'creative': return <Palette className="w-4 h-4" />
-      case 'environment': return <Droplets className="w-4 h-4" />
-      case 'safety': return <Shield className="w-4 h-4" />
-      case 'leadership': return <Users className="w-4 h-4" />
-      case 'essential': return <CheckCircle className="w-4 h-4" />
-      case 'foundational': return <BookOpen className="w-4 h-4" />
-      case 'sustainability': return <Leaf className="w-4 h-4" />
-      case 'community': return <Users className="w-4 h-4" />
-      default: return <BookOpen className="w-4 h-4" />
     }
   }
 
@@ -313,36 +413,113 @@ export default function RecommendationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+        <div className="bg-gray-800 p-4 rounded-lg mb-6 text-left max-w-md w-full">
+          <h3 className="text-sm font-bold mb-2">Debug Info - Loading</h3>
+          <p className="text-xs text-gray-300 break-all">DNA Keys Found: {debugInfo.dnaKeys.join(', ') || 'none'}</p>
+          <p className="text-xs text-gray-300">DNA Found: {debugInfo.dnaFound ? 'Yes' : 'No'}</p>
+          <p className="text-xs text-gray-300">Timestamp: {debugInfo.timestamp}</p>
+          <p className="text-xs text-gray-300">Courses DB: {coursesDatabase.length} courses</p>
+        </div>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-xl">Finding perfect courses for you...</p>
-          <p className="text-gray-400 mt-2">Analyzing your DNA profile and matching with courses</p>
+          <p className="text-xl">Finding Perfect Courses For You</p>
+          <p className="text-gray-400 mt-2">Analyzing your DNA profile...</p>
         </div>
       </div>
     )
   }
 
-  if (!dnaAnswers) {
+  if (!dnaAnswers || forceShowAll) {
+    // Fallback: show all courses with a warning
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl mb-4">No DNA Analysis Found</h2>
-          <p className="text-gray-400 mb-6">Please complete your AI Learner DNA analysis first</p>
-          <button
-            onClick={() => router.push('/dashboard/learning')}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-bold hover:shadow-xl transition-all"
-          >
-            Start DNA Analysis
-          </button>
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
+        <div className="bg-gray-800 p-4 rounded-lg mb-6 text-left max-w-md w-full">
+          <h3 className="text-sm font-bold mb-2">Debug Info - No DNA Found</h3>
+          <p className="text-xs text-gray-300 break-all">DNA Keys Found: {debugInfo.dnaKeys.join(', ') || 'none'}</p>
+          <p className="text-xs text-gray-300">DNA Found: {debugInfo.dnaFound ? 'Yes' : 'No'}</p>
+          <p className="text-xs text-gray-300">Timestamp: {debugInfo.timestamp}</p>
+          <p className="text-xs text-gray-300 break-all">DNA Raw: {debugInfo.dnaRaw || 'null'}</p>
+          <p className="text-xs text-gray-300 break-all">User Raw: {debugInfo.userRaw || 'null'}</p>
+        </div>
+        <div className="text-center mb-8 max-w-2xl">
+          <h2 className="text-2xl mb-4 text-yellow-400">No DNA Profile Found</h2>
+          <p className="text-gray-400 mb-6">
+            We couldn't find your personalized learning DNA. You can either:
+          </p>
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={() => router.push('/dashboard/learning')}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-bold hover:shadow-xl transition-all w-full max-w-xs"
+            >
+              Start DNA Analysis
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-6 py-3 bg-gray-800 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-all w-full max-w-xs"
+            >
+              Go to Dashboard
+            </button>
+            <button
+              onClick={() => {
+                // Clear all DNA data and refresh
+                localStorage.removeItem('user_dna_answers');
+                localStorage.removeItem('learnerDNA');
+                localStorage.removeItem('dream2skill_dna_data');
+                alert('DNA data reset. Please start DNA analysis again.');
+                router.push('/dashboard/learning');
+              }}
+              className="px-6 py-3 bg-red-800 text-white rounded-xl font-bold hover:bg-red-700 transition-all w-full max-w-xs"
+            >
+              Reset DNA Data
+            </button>
+          </div>
+        </div>
+        {/* Show all courses grid */}
+        <div className="w-full max-w-7xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6 text-white">Explore All Available Courses</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {coursesDatabase.map((course, index) => (
+              <div key={course.id} 
+                className="bg-gray-800/30 rounded-xl p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                onClick={() => handleStartCourse(course.id)}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(course.difficulty)}`}>
+                    {course.difficulty.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="text-xs text-gray-400">{course.weeks} weeks</div>
+                </div>
+                <h4 className="font-semibold mb-2 line-clamp-2">{course.title}</h4>
+                <p className="text-gray-400 text-xs mb-3 line-clamp-2">{course.subtitle}</p>
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <span>{course.category[0]}</span>
+                  <span>{course.learners.toLocaleString().slice(0, 3)}K learners</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-blue-900 text-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Debug Info - Collapsible */}
+        <details className="bg-gray-800 p-4 rounded-lg mb-6">
+          <summary className="text-sm font-bold cursor-pointer">Debug Info (Click to expand)</summary>
+          <div className="mt-2 text-xs">
+            <p><strong>DNA Keys Found:</strong> {debugInfo.dnaKeys.join(', ') || 'none'}</p>
+            <p><strong>DNA Found:</strong> {debugInfo.dnaFound ? 'Yes' : 'No'}</p>
+            <p><strong>DNA Properties:</strong> {dnaAnswers ? Object.keys(dnaAnswers).length : 0}</p>
+            <p><strong>Recommended Courses:</strong> {recommendedCourses.length}</p>
+            <p><strong>Top Match Score:</strong> {topMatch?.matchScore || 0}%</p>
+            <p><strong>Timestamp:</strong> {debugInfo.timestamp}</p>
+          </div>
+        </details>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -425,7 +602,7 @@ export default function RecommendationsPage() {
                   <Brain className="w-5 h-5 text-purple-400" />
                   <h3 className="font-semibold">Learning Style</h3>
                 </div>
-                <p className="text-gray-300 text-sm">{learningProfile.style}</p>
+                <p className="text-gray-300 text-sm">{learningProfile.style || 'Analyzing...'}</p>
               </div>
               
               <div className="bg-gray-800/50 rounded-xl p-4">
@@ -433,7 +610,7 @@ export default function RecommendationsPage() {
                   <Clock className="w-5 h-5 text-blue-400" />
                   <h3 className="font-semibold">Optimal Pace</h3>
                 </div>
-                <p className="text-gray-300 text-sm">{learningProfile.pace}</p>
+                <p className="text-gray-300 text-sm">{learningProfile.pace || 'Analyzing...'}</p>
               </div>
               
               <div className="bg-gray-800/50 rounded-xl p-4">
@@ -441,7 +618,7 @@ export default function RecommendationsPage() {
                   <Zap className="w-5 h-5 text-green-400" />
                   <h3 className="font-semibold">Environment</h3>
                 </div>
-                <p className="text-gray-300 text-sm">{learningProfile.environment}</p>
+                <p className="text-gray-300 text-sm">{learningProfile.environment || 'Analyzing...'}</p>
               </div>
               
               <div className="bg-gray-800/50 rounded-xl p-4">
@@ -463,12 +640,16 @@ export default function RecommendationsPage() {
                   Your Strengths
                 </h4>
                 <ul className="space-y-2">
-                  {learningProfile.strengths.map((strength, index) => (
-                    <li key={index} className="flex items-start space-x-3">
-                      <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
-                      <span className="text-gray-300 text-sm">{strength}</span>
-                    </li>
-                  ))}
+                  {learningProfile.strengths.length > 0 ? (
+                    learningProfile.strengths.map((strength, index) => (
+                      <li key={index} className="flex items-start space-x-3">
+                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                        <span className="text-gray-300 text-sm">{strength}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-400 text-sm">Analyzing your strengths...</li>
+                  )}
                 </ul>
               </div>
               
@@ -638,107 +819,110 @@ export default function RecommendationsPage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {searchedCourses.slice(0, 6).map((course, index) => (
-              <motion.div
-                key={course.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + (index * 0.1) }}
-                className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:scale-[1.02]"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(course.difficulty)}`}>
-                        {course.difficulty.toUpperCase()}
-                      </div>
-                      <div className="flex items-center text-yellow-400 text-sm">
-                        <Star className="w-3 h-3 fill-current mr-1" />
-                        {course.rating}
-                      </div>
-                    </div>
-                    
-                    <h3 className="text-xl font-bold mb-2 line-clamp-2">{course.title}</h3>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">{course.subtitle}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {course.tags.slice(0, 3).map((tag, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-gray-800/50 rounded-full text-xs">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="text-right ml-3">
-                    <div className="text-2xl font-black text-yellow-400 mb-1">
-                      {course.matchScore}%
-                    </div>
-                    <div className="text-xs text-gray-500">Match</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between text-sm text-gray-400 mb-6">
-                  <div className="flex items-center space-x-4">
-                    <span className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {course.duration}
-                    </span>
-                    <span className="flex items-center">
-                      <BookOpen className="w-4 h-4 mr-1" />
-                      {course.totalLessons} lessons
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-1" />
-                    {(course.learners / 1000).toFixed(1)}K
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleStartCourse(course.id)}
-                    className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl transition-all"
-                  >
-                    View Course Details
-                  </motion.button>
-                  
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center">
-                      {course.offlineAvailable && (
-                        <span className="flex items-center mr-3">
-                          <Download className="w-3 h-3 mr-1" />
-                          Offline
-                        </span>
-                      )}
-                      {course.certificate && (
-                        <span className="flex items-center">
-                          <Award className="w-3 h-3 mr-1" />
-                          Certificate
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      {course.format.slice(0, 2).map((fmt, idx) => (
-                        <div key={idx} className="ml-2">
-                          {getFormatIcon(fmt)}
+          {searchedCourses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {searchedCourses.slice(0, 6).map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + (index * 0.1) }}
+                  className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:scale-[1.02] cursor-pointer"
+                  onClick={() => handleStartCourse(course.id)}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(course.difficulty)}`}>
+                          {course.difficulty.toUpperCase()}
                         </div>
-                      ))}
+                        <div className="flex items-center text-yellow-400 text-sm">
+                          <Star className="w-3 h-3 fill-current mr-1" />
+                          {course.rating}
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-bold mb-2 line-clamp-2">{course.title}</h3>
+                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">{course.subtitle}</p>
+                      
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {course.tags.slice(0, 3).map((tag, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-gray-800/50 rounded-full text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="text-right ml-3">
+                      <div className="text-2xl font-black text-yellow-400 mb-1">
+                        {course.matchScore}%
+                      </div>
+                      <div className="text-xs text-gray-500">Match</div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Show message if no courses match search */}
-          {searchedCourses.length === 0 && (
-            <div className="text-center py-12">
+                  
+                  <div className="flex items-center justify-between text-sm text-gray-400 mb-6">
+                    <div className="flex items-center space-x-4">
+                      <span className="flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {course.duration}
+                      </span>
+                      <span className="flex items-center">
+                        <BookOpen className="w-4 h-4 mr-1" />
+                        {course.totalLessons} lessons
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-1" />
+                      {(course.learners / 1000).toFixed(1)}K
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartCourse(course.id);
+                      }}
+                      className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl transition-all"
+                    >
+                      View Course Details
+                    </motion.button>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center">
+                        {course.offlineAvailable && (
+                          <span className="flex items-center mr-3">
+                            <Download className="w-3 h-3 mr-1" />
+                            Offline
+                          </span>
+                        )}
+                        {course.certificate && (
+                          <span className="flex items-center">
+                            <Award className="w-3 h-3 mr-1" />
+                            Certificate
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        {course.format.slice(0, 2).map((fmt, idx) => (
+                          <div key={idx} className="ml-2">
+                            {getFormatIcon(fmt)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-800/30 rounded-2xl">
               <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">No courses found</h3>
+              <h3 className="text-xl font-bold mb-2">No courses match your search</h3>
               <p className="text-gray-400 mb-6">Try adjusting your search or filter criteria</p>
               <button
                 onClick={() => {
@@ -763,7 +947,10 @@ export default function RecommendationsPage() {
           <h2 className="text-2xl font-bold mb-6 text-white">Explore All Courses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {coursesDatabase.slice(0, 8).map((course, index) => (
-              <div key={course.id} className="bg-gray-800/30 rounded-xl p-4 hover:bg-gray-800/50 transition-colors">
+              <div key={course.id} 
+                className="bg-gray-800/30 rounded-xl p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                onClick={() => handleStartCourse(course.id)}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <div className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(course.difficulty)}`}>
                     {course.difficulty.charAt(0).toUpperCase()}
@@ -809,7 +996,7 @@ export default function RecommendationsPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/dashboard/learning/courses')}
+            onClick={() => alert('Browse all courses feature coming soon!')}
             className="px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-medium rounded-xl transition-all w-full sm:w-auto"
           >
             Browse All Courses

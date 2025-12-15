@@ -1,46 +1,48 @@
 'use client'
 import { Header } from '@/components/layout/Header'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { motion } from 'framer-motion'
 import { Brain, Zap, Target, Shield, Users, Clock, Star, Download } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Home() {
+    const { t } = useLanguage();
   const features = [
     {
       icon: <Brain className="w-8 h-8" />,
-      title: 'AI Learner DNA',
-      description: 'Dynamic learning profile that adapts to your unique style, voice, and pace in real-time',
-      stats: '50K+ Active Profiles',
+      title: t('features.dna.title'),
+      description: t('features.dna.desc'),
+      stats: t('features.dna.stats'),
       gradient: 'from-blue-500 to-cyan-500'
     },
     {
       icon: <Zap className="w-8 h-8" />,
-      title: 'Smart MicroLessons',
-      description: '1-3 minute story-based lessons in 10+ Indian languages, optimized for low bandwidth',
-      stats: '95% Completion Rate',
+      title: t('features.microlessons.title'),
+      description: t('features.microlessons.desc'),
+      stats: t('features.microlessons.stats'),
       gradient: 'from-green-500 to-emerald-500'
     },
     {
       icon: <Target className="w-8 h-8" />,
-      title: 'Career Oracle AI',
-      description: 'Predictive career guidance with local job market analysis and skill gap identification',
-      stats: '500+ Career Paths',
+      title: t('features.oracle.title'),
+      description: t('features.oracle.desc'),
+      stats: t('features.oracle.stats'),
       gradient: 'from-purple-500 to-pink-500'
     },
     {
       icon: <Shield className="w-8 h-8" />,
-      title: 'Blockchain Verified',
-      description: 'Tamper-proof SkillChain credentials that employers can verify instantly via QR code',
-      stats: 'Zero Fraud Records',
+      title: t('features.blockchain.title'),
+      description: t('features.blockchain.desc'),
+      stats: t('features.blockchain.stats'),
       gradient: 'from-orange-500 to-red-500'
     }
   ]
 
   const stats = [
-    { icon: <Users className="w-6 h-6" />, number: '50,247', label: 'ACTIVE LEARNERS', color: 'text-blue-400' },
-    { icon: <Zap className="w-6 h-6" />, number: '10.3x', label: 'LEARNING SPEED', color: 'text-green-400' },
-    { icon: <Star className="w-6 h-6" />, number: '95.7%', label: 'COMPLETION RATE', color: 'text-purple-400' },
-    { icon: <Download className="w-6 h-6" />, number: '100%', label: 'OFFLINE MODE', color: 'text-cyan-400' }
+    { icon: <Users className="w-6 h-6" />, number: '50,247', label: t('stats.activeLearners'), color: 'text-blue-400' },
+    { icon: <Zap className="w-6 h-6" />, number: '10.3x', label: t('stats.learningSpeed'), color: 'text-green-400' },
+    { icon: <Star className="w-6 h-6" />, number: '95.7%', label: t('stats.completionRate'), color: 'text-purple-400' },
+    { icon: <Download className="w-6 h-6" />, number: '100%', label: t('stats.offlineMode'), color: 'text-cyan-400' }
   ]
 
   return (
@@ -91,7 +93,7 @@ export default function Home() {
               transition={{ delay: 0.8 }}
               className="text-xl md:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto font-light tracking-wide"
             >
-              <span className="text-cyan-400 font-semibold">AI-POWERED LEARNING ECOSYSTEM</span> FOR RURAL INDIA'S DIGITAL REVOLUTION
+              <span className="text-cyan-400 font-semibold">{t('hero.title')}</span> {t('hero.subtitle')}
             </motion.p>
             
             {/* CTA Buttons */}
@@ -113,7 +115,7 @@ export default function Home() {
                 >
                   <span className="relative z-10 flex items-center space-x-3">
                     <Zap className="w-6 h-6" />
-                    <span>START LEARNING NOW</span>
+                    <span>{t('hero.ctaPrimary')}</span>
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </motion.button>
@@ -131,7 +133,7 @@ export default function Home() {
                 >
                   <span className="flex items-center justify-center space-x-3">
                     <span>🎥</span>
-                    <span>WATCH DEMO</span>
+                    <span>{t('hero.ctaSecondary')}</span>
                   </span>
                 </motion.button>
               </Link>
@@ -177,14 +179,11 @@ export default function Home() {
           >
             <h2 className="text-5xl md:text-6xl font-black mb-6">
               <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                CORE
-              </span>{' '}
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                TECHNOLOGY
+                {t('coreTech.title')}
               </span>
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto font-light tracking-wide">
-              Next-generation learning infrastructure powered by adaptive AI
+              {t('coreTech.subtitle')}
             </p>
           </motion.div>
 
@@ -239,7 +238,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl font-black text-white mb-8"
           >
-            READY TO <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">TRANSFORM</span> YOUR FUTURE?
+            {t('finalCta.title')}
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -247,7 +246,7 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-xl text-cyan-100 mb-12 max-w-2xl mx-auto font-light tracking-wide"
           >
-            Join India's most advanced learning platform. Build skills with AI-powered education designed for rural communities.
+            {t('finalCta.subtitle')}
           </motion.p>
           <Link href="/auth/register">
             <motion.button 
@@ -263,7 +262,7 @@ export default function Home() {
             >
               <span className="flex items-center justify-center space-x-3">
                 <Zap className="w-6 h-6" />
-                <span>START YOUR JOURNEY</span>
+                <span>{t('finalCta.button')}</span>
               </span>
             </motion.button>
           </Link>
@@ -274,7 +273,7 @@ export default function Home() {
             transition={{ delay: 0.6 }}
             className="text-cyan-300 mt-8 text-sm font-mono"
           >
-            [ FREE FOREVER • 10+ INDIAN LANGUAGES • OFFLINE AVAILABLE ]
+            {t('finalCta.footer')}
           </motion.p>
         </div>
       </section>

@@ -1,4 +1,6 @@
 // apps/web/src/contexts/LanguageContext.tsx - UPDATED
+// IMPORTANT: ENGLISH IS ALWAYS THE DEFAULT LANGUAGE
+// The language should NEVER change automatically - only when user explicitly selects it
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -15,22 +17,57 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<LanguageCode>('en');
+  const [language, setLanguage] = useState<LanguageCode>('en'); // ENGLISH IS ALWAYS THE DEFAULT
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved language preference
+  // Load saved language preference - ONLY change from English if explicitly set by user
   useEffect(() => {
-    const savedLang = localStorage.getItem('dream2skill-language') as LanguageCode;
-    if (savedLang && languages[savedLang]) {
-      setLanguage(savedLang);
+    try {
+      const savedLang = localStorage.getItem('dream2skill-language') as LanguageCode;
+      console.log('Loading language preference:', savedLang);
+      
+      // Only change from English if the saved language is valid and different from English
+      // ENGLISH IS ALWAYS THE DEFAULT - language should not change automatically
+      if (savedLang && savedLang !== 'en' && languages[savedLang]) {
+        console.log('Setting language to:', savedLang);
+        setLanguage(savedLang);
+      } else {
+        // Ensure we stay on English if no valid saved language or if it's English
+        console.log('Keeping default language: English');
+        setLanguage('en');
+        // Clear any invalid saved language
+        if (savedLang && (!languages[savedLang] || savedLang === 'en')) {
+          localStorage.removeItem('dream2skill-language');
+        }
+      }
+    } catch (error) {
+      console.warn('Error loading language preference:', error);
+      // Keep English as default on error
+      setLanguage('en');
     }
     setIsLoading(false);
   }, []);
 
   // Smooth language change WITHOUT page reload
   const handleSetLanguage = useCallback((lang: LanguageCode) => {
+    // Validate language code
+    if (!languages[lang]) {
+      console.warn('Invalid language code:', lang);
+      return;
+    }
+    
+    console.log('Changing language to:', lang);
     setLanguage(lang);
-    localStorage.setItem('dream2skill-language', lang);
+    
+    // Only save to localStorage if it's not English
+    // This ensures English is always the default
+    if (lang === 'en') {
+      localStorage.removeItem('dream2skill-language');
+      console.log('Removed language preference from localStorage (using English default)');
+    } else {
+      localStorage.setItem('dream2skill-language', lang);
+      console.log('Saved language preference to localStorage:', lang);
+    }
     
     // Update HTML lang and dir attributes
     document.documentElement.lang = lang;

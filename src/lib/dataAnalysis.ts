@@ -1,204 +1,183 @@
-// src/lib/dnaAnalysis.ts
-export interface DNAAnswers {
-  learningStyle: string;
-  informationProcessing: string;
-  memoryRetention: string;
-  problemSolving: string;
-  motivationType: string;
-  stressResponse: string;
-  confidenceLevel: string;
-  socialLearning: string;
-  studyEnvironment: string;
-  energyPatterns: string;
-  focusDuration: string;
-  techComfort: string;
-  deviceUsage: string;
-  internetStability: string;
-  offlineNeeds: string;
+// apps/web/src/lib/dnaAnalysis.ts
+import { Course } from './courses';
+
+export interface UserDNA {
+  learningStyle?: string;
+  learningSpeed?: string;
+  dailyTime?: string;
+  difficultyHandling?: string;
+  revisionNeeds?: string;
+  applicationSpeed?: string;
+  focusDuration?: string;
+  motivationType?: string;
+  confidenceLevel?: string;
+  // ... other DNA fields
 }
 
-export interface LearningProfile {
-  primaryStyle: 'visual' | 'auditory' | 'kinesthetic' | 'reading' | 'social';
-  secondaryStyle: 'sequential' | 'global' | 'analytical' | 'intuitive';
-  pace: 'fast' | 'moderate' | 'slow';
-  environment: 'quiet' | 'active' | 'flexible';
-  careerFocus: 'technical' | 'creative' | 'business' | 'service' | 'entrepreneurial';
-  motivation: 'achievement' | 'curiosity' | 'social' | 'practical';
-  techLevel: 'expert' | 'comfortable' | 'basic' | 'learning';
-  offlinePriority: 'critical' | 'important' | 'sometimes' | 'rarely';
-  strengths: string[];
-  challenges: string[];
-  recommendedCourseIds: number[];
-}
-
-export function analyzeDNA(answers: DNAAnswers): LearningProfile {
-  // Determine primary learning style
-  let primaryStyle: LearningProfile['primaryStyle'] = 'visual';
-  if (answers.learningStyle === 'visual') primaryStyle = 'visual';
-  else if (answers.learningStyle === 'auditory') primaryStyle = 'auditory';
-  else if (answers.learningStyle === 'kinesthetic') primaryStyle = 'kinesthetic';
-  else if (answers.learningStyle === 'reading') primaryStyle = 'reading';
-  else if (answers.socialLearning === 'prefer_group') primaryStyle = 'social';
-
-  // Determine secondary processing style
-  let secondaryStyle: LearningProfile['secondaryStyle'] = 'sequential';
-  if (answers.informationProcessing === 'sequential') secondaryStyle = 'sequential';
-  else if (answers.informationProcessing === 'global') secondaryStyle = 'global';
-  else if (answers.informationProcessing === 'analytical') secondaryStyle = 'analytical';
-  else if (answers.informationProcessing === 'intuitive') secondaryStyle = 'intuitive';
-
-  // Determine learning pace
-  let pace: LearningProfile['pace'] = 'moderate';
-  if (answers.focusDuration === 'short') pace = 'slow';
-  else if (answers.focusDuration === 'medium') pace = 'moderate';
-  else if (answers.focusDuration === 'long' || answers.focusDuration === 'extended') pace = 'fast';
-
-  // Determine environment preference
-  let environment: LearningProfile['environment'] = 'flexible';
-  if (answers.studyEnvironment === 'quiet') environment = 'quiet';
-  else if (answers.studyEnvironment === 'active') environment = 'active';
-
-  // Determine career focus based on interests and motivations
-  let careerFocus: LearningProfile['careerFocus'] = 'technical';
-  if (answers.motivationType === 'curiosity') careerFocus = 'technical';
-  else if (answers.motivationType === 'creative' || answers.problemSolving === 'creative') careerFocus = 'creative';
-  else if (answers.motivationType === 'social') careerFocus = 'service';
-  else if (answers.motivationType === 'practical') careerFocus = 'business';
-  else if (answers.confidenceLevel === 'very') careerFocus = 'entrepreneurial';
-
-  // Determine motivation type
-  let motivation: LearningProfile['motivation'] = 'achievement';
-  if (answers.motivationType === 'achievement') motivation = 'achievement';
-  else if (answers.motivationType === 'curiosity') motivation = 'curiosity';
-  else if (answers.motivationType === 'social') motivation = 'social';
-  else if (answers.motivationType === 'practical') motivation = 'practical';
-
-  // Tech comfort level
-  let techLevel: LearningProfile['techLevel'] = 'basic';
-  if (answers.techComfort === 'expert') techLevel = 'expert';
-  else if (answers.techComfort === 'comfortable') techLevel = 'comfortable';
-  else if (answers.techComfort === 'basic') techLevel = 'basic';
-  else if (answers.techComfort === 'learning') techLevel = 'learning';
-
-  // Offline needs
-  let offlinePriority: LearningProfile['offlinePriority'] = 'sometimes';
-  if (answers.offlineNeeds === 'critical') offlinePriority = 'critical';
-  else if (answers.offlineNeeds === 'important') offlinePriority = 'important';
-  else if (answers.offlineNeeds === 'sometimes') offlinePriority = 'sometimes';
-  else if (answers.offlineNeeds === 'rarely') offlinePriority = 'rarely';
-
-  // Identify strengths
-  const strengths: string[] = [];
-  if (answers.learningStyle === 'visual') strengths.push('Strong visual processing and pattern recognition');
-  if (answers.informationProcessing === 'global') strengths.push('Big-picture thinking and strategic planning');
-  if (answers.problemSolving === 'creative') strengths.push('Creative problem-solving and innovation');
-  if (answers.memoryRetention === 'association') strengths.push('Excellent pattern recognition and connections');
-  if (answers.confidenceLevel === 'very') strengths.push('High confidence in learning new technologies');
-  if (answers.socialLearning === 'prefer_group') strengths.push('Strong collaborative learning skills');
-
-  // Identify challenges
-  const challenges: string[] = [];
-  if (answers.techComfort === 'learning') challenges.push('May need additional tech support initially');
-  if (answers.focusDuration === 'short') challenges.push('Benefits from micro-learning approaches');
-  if (answers.confidenceLevel === 'nervous') challenges.push('Needs encouragement and gradual progression');
-  if (answers.internetStability === 'unstable') challenges.push('Requires reliable offline learning options');
-
-  // Get recommended course IDs based on analysis
-  const recommendedCourseIds = getRecommendedCourseIds({
-    primaryStyle,
-    secondaryStyle,
-    careerFocus,
-    techLevel,
-    offlinePriority
-  });
-
-  return {
-    primaryStyle,
-    secondaryStyle,
-    pace,
-    environment,
-    careerFocus,
-    motivation,
-    techLevel,
-    offlinePriority,
-    strengths,
-    challenges,
-    recommendedCourseIds
+export interface PersonalizedCourse extends Course {
+  matchScore: number;
+  personalizedPace: 'slowPaced' | 'averagePaced' | 'fastPaced';
+  estimatedCompletionTime: string;
+  learningPlan: {
+    weeklySchedule: string[];
+    studyTips: string[];
+    difficultyAdjustments: string[];
   };
 }
 
-function getRecommendedCourseIds(profile: {
-  primaryStyle: string;
-  secondaryStyle: string;
-  careerFocus: string;
-  techLevel: string;
-  offlinePriority: string;
-}): number[] {
-  let courseIds: number[] = [];
-
-  // Base recommendations on primary learning style
-  switch (profile.primaryStyle) {
-    case 'visual':
-      courseIds = [1, 2, 7, 11]; // Design, Marketing, Data Visualization
-      break;
-    case 'auditory':
-      courseIds = [8, 12, 15]; // Customer Service, Teaching, Sales
-      break;
-    case 'kinesthetic':
-      courseIds = [3, 4, 9, 13]; // Mobile Repair, EV, Agriculture, Healthcare
-      break;
-    case 'reading':
-      courseIds = [5, 6, 10, 14]; // Data Entry, Accounting, Content Writing
-      break;
-    case 'social':
-      courseIds = [8, 12, 15, 16]; // Community roles, Teaching, Sales
-      break;
-  }
-
-  // Filter by career focus
-  courseIds = courseIds.filter(id => {
-    const course = getCourseById(id);
-    return course && course.careerFocus.includes(profile.careerFocus);
-  });
-
-  // Adjust for tech level - don't recommend advanced tech courses to beginners
-  if (profile.techLevel === 'learning' || profile.techLevel === 'basic') {
-    courseIds = courseIds.filter(id => {
-      const course = getCourseById(id);
-      return course && course.difficulty === 'beginner';
-    });
-  }
-
-  // Prioritize offline-available courses if needed
-  if (profile.offlinePriority === 'critical' || profile.offlinePriority === 'important') {
-    courseIds = courseIds.filter(id => {
-      const course = getCourseById(id);
-      return course && course.offlineAvailable;
-    });
-  }
-
-  return courseIds.slice(0, 4); // Return top 4 recommendations
+export function analyzeDNAAndPersonalizeCourses(userDNA: UserDNA, allCourses: Course[]): PersonalizedCourse[] {
+  return allCourses.map(course => {
+    const matchScore = calculateDNAScore(userDNA, course);
+    const personalizedPace = determinePace(userDNA);
+    
+    return {
+      ...course,
+      matchScore,
+      personalizedPace,
+      estimatedCompletionTime: calculateEstimatedTime(course, personalizedPace),
+      learningPlan: createLearningPlan(userDNA, course, personalizedPace)
+    };
+  }).sort((a, b) => b.matchScore - a.matchScore); // Sort by best match
 }
 
-// Mock course database
-function getCourseById(id: number) {
-  const courses = {
-    1: { id: 1, title: "Graphic Design Fundamentals", careerFocus: ['creative', 'technical'], difficulty: 'beginner', offlineAvailable: true },
-    2: { id: 2, title: "Digital Marketing with Visual Analytics", careerFocus: ['creative', 'business'], difficulty: 'beginner', offlineAvailable: true },
-    3: { id: 3, title: "Mobile Repair Technician", careerFocus: ['technical', 'service'], difficulty: 'intermediate', offlineAvailable: false },
-    4: { id: 4, title: "Electric Vehicle Basics", careerFocus: ['technical'], difficulty: 'intermediate', offlineAvailable: true },
-    5: { id: 5, title: "Data Entry & Excel Mastery", careerFocus: ['technical', 'business'], difficulty: 'beginner', offlineAvailable: true },
-    6: { id: 6, title: "Basic Accounting & Bookkeeping", careerFocus: ['business'], difficulty: 'beginner', offlineAvailable: true },
-    7: { id: 7, title: "Data Visualization with Charts", careerFocus: ['technical', 'creative'], difficulty: 'intermediate', offlineAvailable: true },
-    8: { id: 8, title: "Community Health Worker", careerFocus: ['service'], difficulty: 'beginner', offlineAvailable: true },
-    9: { id: 9, title: "Modern Agriculture Techniques", careerFocus: ['technical', 'entrepreneurial'], difficulty: 'beginner', offlineAvailable: true },
-    10: { id: 10, title: "Content Writing & Blogging", careerFocus: ['creative', 'business'], difficulty: 'beginner', offlineAvailable: true },
-    11: { id: 11, title: "UI/UX Design Basics", careerFocus: ['creative', 'technical'], difficulty: 'intermediate', offlineAvailable: true },
-    12: { id: 12, title: "Teaching Assistant Training", careerFocus: ['service', 'social'], difficulty: 'beginner', offlineAvailable: true },
-    13: { id: 13, title: "Basic Healthcare Assistant", careerFocus: ['service'], difficulty: 'beginner', offlineAvailable: true },
-    14: { id: 14, title: "Freelance Writing Mastery", careerFocus: ['creative', 'entrepreneurial'], difficulty: 'intermediate', offlineAvailable: true },
-    15: { id: 15, title: "Sales & Customer Relations", careerFocus: ['business', 'social'], difficulty: 'beginner', offlineAvailable: true },
-    16: { id: 16, title: "Social Media Management", careerFocus: ['creative', 'business'], difficulty: 'beginner', offlineAvailable: true }
-  };
-  return courses[id as keyof typeof courses];
+function calculateDNAScore(userDNA: UserDNA, course: Course): number {
+  let score = 0;
+  const totalPossible = 100;
+  
+  // Learning Style Match (20 points)
+  if (userDNA.learningStyle && course.dnaCompatibility.learningStyles.includes(userDNA.learningStyle)) {
+    score += 20;
+  }
+  
+  // Learning Speed Match (20 points)
+  if (userDNA.learningSpeed && course.dnaCompatibility.difficultyLevels.includes(userDNA.learningSpeed)) {
+    score += 20;
+  }
+  
+  // Focus Duration Match (15 points)
+  if (userDNA.focusDuration && course.dnaCompatibility.focusDurations.includes(userDNA.focusDuration)) {
+    score += 15;
+  }
+  
+  // Revision Needs Match (15 points)
+  if (userDNA.revisionNeeds && course.dnaCompatibility.revisionNeeds.includes(userDNA.revisionNeeds)) {
+    score += 15;
+  }
+  
+  // Motivation Match (15 points)
+  if (userDNA.motivationType && course.dnaCompatibility.motivationTypes.includes(userDNA.motivationType)) {
+    score += 15;
+  }
+  
+  // Confidence Level Adjustment (15 points)
+  if (userDNA.confidenceLevel === 'very' && course.difficulty === 'Advanced') {
+    score += 15;
+  } else if (userDNA.confidenceLevel === 'nervous' && course.difficulty === 'Beginner') {
+    score += 15;
+  } else if (userDNA.confidenceLevel === 'moderate' && course.difficulty === 'Intermediate') {
+    score += 15;
+  }
+  
+  return score;
+}
+
+function determinePace(userDNA: UserDNA): 'slowPaced' | 'averagePaced' | 'fastPaced' {
+  const learningSpeed = userDNA.learningSpeed;
+  const dailyTime = userDNA.dailyTime;
+  const focusDuration = userDNA.focusDuration;
+  
+  // Determine pace based on DNA analysis
+  if (learningSpeed === 'very_slow' || learningSpeed === 'slow') {
+    return 'slowPaced';
+  } else if (learningSpeed === 'very_fast' || learningSpeed === 'fast') {
+    if (dailyTime === 'more_3_hours' || focusDuration === 'extended') {
+      return 'fastPaced';
+    }
+    return 'averagePaced';
+  } else if (learningSpeed === 'average') {
+    return 'averagePaced';
+  }
+  
+  // Default based on daily time available
+  if (dailyTime === '30_min') {
+    return 'slowPaced';
+  } else if (dailyTime === 'more_3_hours') {
+    return 'fastPaced';
+  }
+  
+  return 'averagePaced'; // Default
+}
+
+function calculateEstimatedTime(course: Course, pace: 'slowPaced' | 'averagePaced' | 'fastPaced'): string {
+  const baseWeeks = parseInt(course.duration.split(' ')[0]);
+  const lessonCount = course.lessons;
+  
+  // Adjust time based on pace
+  let multiplier = 1;
+  if (pace === 'slowPaced') {
+    multiplier = 1.5; // 50% longer
+  } else if (pace === 'fastPaced') {
+    multiplier = 0.75; // 25% faster
+  }
+  
+  const estimatedWeeks = Math.ceil(baseWeeks * multiplier);
+  return `${estimatedWeeks} weeks`;
+}
+
+function createLearningPlan(userDNA: UserDNA, course: Course, pace: 'slowPaced' | 'averagePaced' | 'fastPaced'): {
+  weeklySchedule: string[];
+  studyTips: string[];
+  difficultyAdjustments: string[];
+} {
+  const weeklySchedule = [];
+  const studyTips = [];
+  const difficultyAdjustments = [];
+  
+  const variant = course.lessonVariants[pace];
+  
+  // Create weekly schedule based on pace
+  if (pace === 'slowPaced') {
+    weeklySchedule.push(
+      `📅 Study Plan: ${variant.lessonDuration}-minute lessons`,
+      `⏸️ Take ${variant.breaks} breaks during each lesson`,
+      `🔄 Review concepts ${variant.repetitionCount} times`,
+      `📚 Study ${Math.ceil(course.lessons / 5)} days per week`
+    );
+  } else if (pace === 'averagePaced') {
+    weeklySchedule.push(
+      `📅 Study Plan: ${variant.lessonDuration}-minute lessons`,
+      `⏸️ Take ${variant.breaks} break during each lesson`,
+      `🔄 Review concepts ${variant.repetitionCount} times`,
+      `📚 Study ${Math.ceil(course.lessons / 4)} days per week`
+    );
+  } else {
+    weeklySchedule.push(
+      `📅 Study Plan: ${variant.lessonDuration}-minute lessons`,
+      `⚡ Intensive learning sessions`,
+      `🔄 Review concepts ${variant.repetitionCount} time`,
+      `📚 Study ${Math.ceil(course.lessons / 3)} days per week`
+    );
+  }
+  
+  // Add study tips based on DNA
+  if (userDNA.learningStyle === 'visual') {
+    studyTips.push('👀 Watch all video demonstrations carefully', '📊 Use diagrams and charts for better understanding');
+  } else if (userDNA.learningStyle === 'auditory') {
+    studyTips.push('👂 Listen to audio explanations multiple times', '💬 Discuss concepts with study partners');
+  } else if (userDNA.learningStyle === 'kinesthetic') {
+    studyTips.push('🛠️ Practice all hands-on exercises', '🔧 Try the practical assignments immediately');
+  }
+  
+  // Add difficulty adjustments
+  if (userDNA.learningSpeed === 'slow' || userDNA.learningSpeed === 'very_slow') {
+    difficultyAdjustments.push('🐢 Extra examples provided for difficult concepts', '📝 Step-by-step breakdown of complex topics', '🔄 Additional practice exercises');
+  } else if (userDNA.learningSpeed === 'fast' || userDNA.learningSpeed === 'very_fast') {
+    difficultyAdjustments.push('⚡ Advanced challenges included', '🚀 Bonus materials for quick learners', '💡 Deep-dive into advanced topics');
+  }
+  
+  if (userDNA.revisionNeeds === 'always' || userDNA.revisionNeeds === 'frequently') {
+    difficultyAdjustments.push('🔄 Spaced repetition system activated', '📖 Frequent revision quizzes', '🎯 Memory reinforcement exercises');
+  }
+  
+  return { weeklySchedule, studyTips, difficultyAdjustments };
 }
